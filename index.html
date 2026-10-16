@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#102a56">
+  <meta name="description" content="KapalangGo — a local public transport guide for Kapalong and Tagum, Davao del Norte.">
+  <title>KapalangGo | Local Transport Guide</title>
+
+  <link rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+
+  <style>
+    :root {
+      --navy: #102a56;
+      --blue: #1765d1;
+      --light: #f2f6fc;
+      --white: #ffffff;
+      --text: #192c49;
+      --muted: #64748b;
+      --border: #dce5f1;
+      --gold: #ffc857;
+      --green: #14804a;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      background: var(--light);
+      color: var(--text);
+    }
+
+    button, select {
+      font: inherit;
+    }
+
+    button { cursor: pointer; }
+
+    header {
+      color: white;
+      background: linear-gradient(135deg, #102a56, #174c91);
+      padding: 22px max(18px, calc((100% - 1100px) / 2));
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-icon {
+      display: grid;
+      place-items: center;
+      background: var(--gold);
+      color: var(--navy);
+      width: 49px;
+      height: 49px;
+      border-radius: 14px;
+      font-size: 27px;
+    }
+
+    .brand h1 {
+      font-size: 25px;
+      margin: 0 0 4px;
+    }
+
+    .brand p {
+      margin: 0;
+      color: #dbeafe;
+      font-size: 13px;
+    }
+
+    .hero {
+      max-width: 1100px;
+      margin: auto;
+      padding: 28px 18px 12px;
+    }
+
+    .hero h2 {
+      font-size: clamp(25px, 5vw, 36px);
+      margin: 0 0 9px;
+      color: var(--navy);
+    }
+
+    .hero p {
+      color: var(--muted);
+      line-height: 1.6;
+      margin: 0;
+    }
+
+    main {
+      max-width: 1100px;
+      padding: 12px 18px 32px;
+      margin: auto;
+    }
+
+    .card {
+      background: var(--white);
+      padding: 20px;
+      margin-bottom: 18px;
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      box-shadow: 0 5px 18px rgba(16, 42, 86, 0.045);
+    }
+
+    .card h3 {
+      margin: 0 0 16px;
+      color: var(--navy);
+      font-size: 19px;
+    }
+
+    .route-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+
+    .field label {
+      display: block;
+      font-weight: bold;
+      font-size: 13px;
+      margin-bottom: 8px;
+    }
+
+    select {
+      width: 100%;
+      padding: 13px;
+      border: 1px solid var(--border);
+      border-radius: 11px;
+      color: var(--text);
+      background: white;
+      min-height: 47px;
+    }
+
+    .actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 16px;
+    }
+
+    .btn {
+      padding: 13px 17px;
+      border: none;
+      border-radius: 11px;
+      font-weight: bold;
+      transition: opacity .2s;
+    }
+
+    .btn:hover { opacity: .88; }
+
+    .btn-primary {
+      background: var(--blue);
+      color: white;
+      flex: 1;
+    }
+
+    .btn-secondary {
+      background: #e8effa;
+      color: var(--navy);
+    }
+
+    #result {
+      display: none;
+      margin-top: 18px;
+      padding: 15px;
+      border-radius: 12px;
+      background: #eef5ff;
+      border: 1px solid #d2e3ff;
+      line-height: 1.6;
+    }
+
+    #result h4 {
+      margin: 0 0 8px;
+      color: var(--navy);
+    }
+
+    #result p { margin: 5px 0; }
+
+    .map-heading {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .map-heading h3 { margin-bottom: 12px; }
+
+    #map {
+      width: 100%;
+      height: 420px;
+      border-radius: 14px;
+      z-index: 1;
+      background: #e5eaf0;
+    }
+
+    .map-note {
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.6;
+      margin: 12px 0 0;
+    }
+
+    .places {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .place {
+      padding: 15px;
+      border: 1px solid var(--border);
+      border-radius: 13px;
+      background: #fbfdff;
+    }
+
+    .place .emoji { font-size: 24px; }
+
+    .place h4 {
+      margin: 8px 0 5px;
+      color: var(--navy);
+    }
+
+    .place p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .tag {
+      display: inline-block;
+      background: #fff3d4;
+      color: #805400;
+      border-radius: 20px;
+      font-size: 11px;
+      padding: 5px 9px;
+      margin-top: 10px;
+    }
+
+    .notice {
+      border-left: 4px solid var(--gold);
+      background: #fff9e9;
+      padding: 13px;
+      border-radius: 8px;
+      font-size: 13px;
+      line-height: 1.6;
+      color: #634b1d;
+    }
+
+    footer {
+      background: var(--navy);
+      color: #dbeafe;
+      text-align: center;
+      padding: 24px 16px;
+      font-size: 13px;
+      line-height: 1.8;
+    }
+
+    footer strong { color: white; }
+
+    @media (max-width: 560px) {
+      .route-grid { grid-template-columns: 1fr; }
+      .places { grid-template-columns: 1fr; }
+      .actions { flex-direction: column; }
+      #map { height: 350px; }
+      .card { padding: 16px; }
+    }
+  </style>
+</head>
+
+<body>
+  <header>
+    <div class="brand">
+      <div class="brand-icon" aria-hidden="true">🚌</div>
+      <div>
+        <h1>KapalangGo</h1>
+        <p>Your Ride. Your Route. Your Norte.</p>
+      </div>
+    </div>
+  </header>
+
+  <section class="hero">
+    <h2>Asa ta padulong?</h2>
+    <p>
+      Plan your trip around Kapalong and Tagum.
+      Explore locations and find local transport information.
+    </p>
+  </section>
+
+  <main>
+    <section class="card">
+      <h3>🧭 Find Your Route</h3>
+
+      <div class="route-grid">
+        <div class="field">
+          <label for="origin">FROM — Starting point</label>
+          <select id="origin">
+            <option value="kapalong">Kapalong</option>
+            <option value="tagum">Tagum City</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="destination">TO — Destination</label>
+          <select id="destination">
+            <option value="tagum">Tagum City</option>
+            <option value="kapalong">Kapalong</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button class="btn btn-secondary" id="swap" type="button">
+          ⇅ Swap locations
+        </button>
+        <button class="btn btn-primary" id="search" type="button">
+          Find My Route →
+        </button>
+      </div>
+
+      <div id="result" aria-live="polite"></div>
+    </section>
+
+    <section class="card">
+      <div class="map-heading">
+        <h3>📍 Explore the Map</h3>
+        <button class="btn btn-secondary" id="showAll" type="button">
+          Show both towns
+        </button>
+      </div>
+
+      <div id="map" aria-label="Interactive map of Kapalong and Tagum"></div>
+
+      <p class="map-note">
+        Map data © OpenStreetMap contributors.
+        Town markers are approximate reference locations,
+        not verified transport terminals or pickup points.
+      </p>
+    </section>
+
+    <section class="card">
+      <h3>🗺️ Explore Locations</h3>
+
+      <div class="places">
+        <article class="place">
+          <div class="emoji" aria-hidden="true">🏘️</div>
+          <h4>Kapalong</h4>
+          <p>Explore Kapalong and look for verified local transport information.</p>
+          <span class="tag">Town reference</span>
+        </article>
+
+        <article class="place">
+          <div class="emoji" aria-hidden="true">🏙️</div>
+          <h4>Tagum City</h4>
+          <p>Explore Tagum City and its local destinations.</p>
+          <span class="tag">Town reference</span>
+        </article>
+      </div>
+    </section>
+
+    <section class="card">
+      <h3>🚌 Transport & Fare Guide</h3>
+      <div class="notice">
+        <strong>Information is still being verified.</strong>
+        <br>
+        Specific jeepney routes, bus schedules, terminal locations,
+        fares, and travel times have not yet been confirmed.
+        Please verify your trip with the transport operator before traveling.
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <strong>KapalangGo</strong><br>
+    Local transport information for Kapalong and Tagum, Davao del Norte.<br>
+    Built to help commuters travel with confidence.
+  </footer>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <script>
+    "use strict";
+
+    // Approximate town-centre reference coordinates.
+    // Verify these before using them for precise navigation.
+    const places = {
+      kapalong: {
+        name: "Kapalong",
+        coords: [7.770, 125.558]
+      },
+      tagum: {
+        name: "Tagum City",
+        coords: [7.447, 125.807]
+      }
+    };
+
+    const map = L.map("map").setView([7.61, 125.68], 10);
+
+    L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 19,
+      attribution:
+        '&copy; <a href="https://www.openstreetmap.org/copyright">' +
+        'OpenStreetMap contributors</a>'
+    }).addTo(map);
+
+    const markers = {};
+
+    Object.entries(places).forEach(([key, place]) => {
+      markers[key] = L.marker(place.coords)
+        .addTo(map)
+        .bindPopup(
+          "<strong>" + place.name + "</strong><br>" +
+          "Approximate town location"
+        );
+    });
+
+    const origin = document.getElementById("origin");
+    const destination = document.getElementById("destination");
+    const result = document.getElementById("result");
+
+    document.getElementById("swap").addEventListener("click", () => {
+      const previousOrigin = origin.value;
+      origin.value = destination.value;
+      destination.value = previousOrigin;
+      result.style.display = "none";
+    });
+
+    document.getElementById("search").addEventListener("click", () => {
+      const from = origin.value;
+      const to = destination.value;
+
+      result.style.display = "block";
+
+      if (from === to) {
+        result.innerHTML =
+          "<h4>Choose another destination</h4>" +
+          "<p>Your starting point and destination are the same.</p>";
+
+        map.setView(places[from].coords, 13);
+        markers[from].openPopup();
+        return;
+      }
+
+      const start = places[from];
+      const end = places[to];
+
+      result.innerHTML =
+        "<h4>" + start.name + " → " + end.name + "</h4>" +
+        "<p><strong>Trip:</strong> " + start.name +
+        " to " + end.name + "</p>" +
+        "<p><strong>Transport options:</strong> Not yet verified.</p>" +
+        "<p><strong>Fare and travel time:</strong> Not yet available.</p>" +
+        "<p>Check with local transport operators for confirmed routes.</p>";
+
+      const bounds = L.latLngBounds(
+        start.coords,
+        end.coords
+      );
+
+      map.fitBounds(bounds, { padding: [35, 35] });
+      markers[from].openPopup();
+    });
+
+    document.getElementById("showAll").addEventListener("click", () => {
+      map.fitBounds(
+        L.latLngBounds(
+          places.kapalong.coords,
+          places.tagum.coords
+        ),
+        { padding: [35, 35] }
+      );
+    });
+  </script>
+</body>
+</html>
